@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Detectives de Energía</title>
+<style>
+  :root{
+    --bg1: linear-gradient(180deg,#FFFAF0,#FFF6E6);
+    --card:#ffffff;
+    --accent:#FF6B6B;
+    --accent2:#FFD166;
+    --accent3:#4ECDC4;
+    --text:#1e1e1e;
+    --muted:#5a5a5a;
+    --success:#2ECC71;
+    --danger:#FF6B6B;
+  }
+  html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif;background:var(--bg1);color:var(--text)}
+  .wrap{max-width:1000px;margin:18px auto;padding:16px;}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{font-size:44px}
+  h1{margin:0;font-size:22px}
+  p.lead{margin:0;color:var(--muted)}
+  main{margin-top:12px}
+  /* Panel */
+  .panel{background:var(--card);border-radius:14px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.06)}
+  .center{display:flex;align-items:center;justify-content:center;flex-direction:column}
+  .btn{background:var(--accent);color:#fff;padding:12px 18px;border-radius:12px;border:none;font-weight:800;cursor:pointer;font-size:16px;box-shadow:0 10px 20px rgba(255,107,107,0.12)}
+  .btn.secondary{background:var(--accent2);color:#222}
+  .btn.ghost{background:transparent;border:2px solid #eee;color:var(--text)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  /* Game area */
+  .hud{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .hint{background:linear-gradient(90deg,#FFF9EA,#FFF2D6);padding:10px;border-radius:10px;font-weight:700}
+  .scorebox{display:flex;gap:8px;align-items:center}
+  .scorepill{background:#fff;padding:8px 10px;border-radius:10px;border:1px solid #f1e1d8;font-weight:800}
+  /* Scene */
+  .scene{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+  .card{
+    background:linear-gradient(180deg,#ffffff,#FFFBF7);
+    border-radius:12px;
+    min-height:140px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:12px;box-shadow:0 8px 24px rgba(0,0,0,0.06);cursor:pointer;transition:transform .18s ease, box-shadow .18s ease, border-color .12s ease;
+    border:4px solid transparent;
+    position:relative; user-select:none;
+  }
+  .card:active{transform:scale(.98)}
+  .emoji{font-size:48px;transition:transform .25s ease, filter .2s ease}
+  .label{margin-top:8px;font-weight:800}
+  /* wrong shake */
+  .card.wrong{animation:shake .5s}
+  @keyframes shake{
+    0%{transform:translateX(0)}
+    25%{transform:translateX(-8px)}
+    50%{transform:translateX(8px)}
+    75%{transform:translateX(-6px)}
+    100%{transform:translateX(0)}
+  }
+  .card.wrong .emoji{filter:hue-rotate(-10deg) saturate(.7)}
+  .card.highlight{border-color:var(--accent2);box-shadow:0 14px 32px rgba(255,209,102,0.16);transform:translateY(-6px)}
+  /* medal overlay */
+  .overlay{
+    position:fixed;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);
+    z-index:200;visibility:hidden;opacity:0;transition:opacity .28s ease, visibility .28s;
+  }
+  .overlay.show{visibility:visible;opacity:1}
+  .medal-card{background:linear-gradient(180deg,#fff8f0,#fff);padding:22px;border-radius:18px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.35);min-width:280px}
+  .medal{font-size:72px;margin-bottom:8px;display:inline-block;transform:scale(.6);opacity:0;animation:pop .7s cubic-bezier(.2,.9,.2,1) forwards}
+  .medal.bronze{color:#C77E43}
+  .medal.silver{color:#C0C0C0}
+  .medal.gold{color:#F5D042}
+  @keyframes pop{to{transform:scale(1);opacity:1}}
+  .small{text-transform:none;font-size:14px;color:var(--muted)}
+  .final-medals{display:flex;gap:12px;justify-content:center;margin-top:10px}
+  .final-medals .med{font-size:48px}
+  /* responsive */
+  @media(max-width:900px){ .scene{grid-template-columns:repeat(2,1fr)} }
+  @media(max-width:520px){ .scene{grid-template-columns:repeat(2,1fr)} .emoji{font-size:40px} .medal{font-size:56px} }
+  /* footer */
+  footer{margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="logo" aria-hidden="true">🕵️‍♀️🔎</div>
+        <div>
+          <h1>Detectives de Energía</h1>
+          <p class="lead">Encuentra evidencias de transformaciones de energía en 3 misiones. ¡Gana medallas!</p>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="display:flex;gap:8px;align-items:center;background:#fff;padding:6px 8px;border-radius:10px;border:1px solid #f1e1d8">
+          <strong>Sonidos</strong>
+          <input type="checkbox" id="soundToggle" checked style="transform:scale(1.1)"/>
+        </label>
+        <button class="btn" id="startBtn">Iniciar Misión</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Intro / instructions area -->
+      <section class="panel" id="introPanel">
+        <div class="center">
+          <h2 style="margin:0">Instrucciones rápidas</h2>
+          <p class="small" style="max-width:680px;text-align:center;margin:8px 0;color:var(--muted)">
+            Lee la pista arriba y toca el emoji que cumpla la misión. Si aciertas ganarás puntos y una medalla. Si fallas, recibirás una pista para intentarlo de nuevo. ¡Buena suerte, detective!
+          </p>
+        </div>
+      </section>
+
+      <!-- Game area (hidden until start) -->
+      <section id="gameArea" style="display:none;margin-top:12px">
+        <div class="hud">
+          <div class="hint" id="missionHint">Pista: —</div>
+          <div class="scorebox">
+            <div class="scorepill">Nivel <span id="levelNum">1</span>/3</div>
+            <div class="scorepill">Puntaje: <span id="score">0</span></div>
+            <div class="scorepill">Medallas: <span id="medalsCount">0</span>/3</div>
+          </div>
+        </div>
+
+        <!-- Scene area -->
+        <div id="sceneWrap">
+          <!-- dynamic scene inserted here -->
+          <div class="scene" id="scene"></div>
+        </div>
+
+        <!-- Controls -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px">
+          <div class="small" id="feedbackMsg">Haz clic en el objeto que crees que corresponde a la pista.</div>
+          <div class="controls">
+            <button class="btn secondary" id="hintBtn">Pista</button>
+            <button class="btn ghost" id="restartBtn">Reiniciar Juego</button>
+          </div>
+        </div>
+      </section>
+
+      <footer>
+        <small>Diseñado para alumnos de 5º de primaria • Juego sin internet • Usa emojis para gráficos</small>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Medalla overlay -->
+  <div class="overlay" id="medalOverlay" role="dialog" aria-hidden="true">
+    <div class="medal-card" id="medalCard">
+      <div class="medal" id="medalEmoji">🏅</div>
+      <h3 id="medalTitle">¡Medalla!</h3>
+      <p id="medalText" class="small">Descripción</p>
+      <div style="margin-top:12px">
+        <button class="btn" id="nextBtn">Siguiente Nivel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final overlay -->
+  <div class="overlay" id="finalOverlay" role="dialog" aria-hidden="true">
+    <div class="medal-card" style="min-width:320px">
+      <h2>¡Misión completada!</h2>
+      <p class="small" id="finalText">Has obtenido:</p>
+      <div class="final-medals" id="finalMedals"></div>
+      <p style="margin-top:10px;font-weight:800">Puntaje final: <span id="finalScore">0</span></p>
+      <div style="margin-top:12px">
+        <button class="btn" id="playAgain">Jugar otra vez</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Detectives de Energía
+   - 3 niveles: Hogar, Escuela, Calle
+   - Click en emoji correcto para cumplir misión
+   - Sonidos (WebAudio) para acierto/error/clic
+   - Medallas y puntaje
+*/
+
+// Data for levels
+const LEVELS = [
+  {
+    id:1,
+    name:"El Hogar",
+    hint:"Encuentra el objeto que transforma energía eléctrica en imágenes y sonido.",
+    options:[
+      {key:'tv', emoji:'📺', label:'TV', correct:true, successText:'¡Excelente! La TV usa electricidad para producir imagen y sonido.'},
+      {key:'stove', emoji:'🍳', label:'Estufa', correct:false, failText:'Eso es una estufa, convierte energía en calor (térmica). Intenta de nuevo.'},
+      {key:'lamp', emoji:'💡', label:'Foco', correct:false, failText:'El foco transforma electricidad en luz, no en imagen y sonido. Intenta otra vez.'},
+      {key:'bike', emoji:'🚴‍♀️', label:'Bicicleta estática', correct:false, failText:'Es mecánica (tu cuerpo la mueve). No es lo que buscamos ahora.'}
+    ],
+    medal:'bronze'
+  },
+  {
+    id:2,
+    name:"La Escuela",
+    hint:"Busca el objeto que transforma energía eléctrica en sonido para avisar el recreo.",
+    options:[
+      {key:'bell', emoji:'🔔', label:'Campana/Timbre', correct:true, successText:'¡Correcto! El timbre usa electricidad para sonar y avisar el recreo.'},
+      {key:'projector', emoji:'📽️', label:'Proyector', correct:false, failText:'El proyector transforma electricidad en imagen (y a veces sonido). No es el timbre.'},
+      {key:'tree', emoji:'🌳', label:'Árbol', correct:false, failText:'Eso es un árbol; usa energía solar para crecer. Intenta otra opción.'},
+      {key:'notebook', emoji:'📓', label:'Cuaderno', correct:false, failText:'Un cuaderno no transforma energía, es para escribir. Prueba otra cosa.'}
+    ],
+    medal:'silver'
+  },
+  {
+    id:3,
+    name:"La Calle",
+    hint:"Encuentra la máquina que usa energía química (gasolina) para generar energía mecánica (movimiento).",
+    options:[
+      {key:'car', emoji:'🚗', label:'Coche', correct:true, successText:'¡Muy bien! El coche quema gasolina (química) y produce movimiento (mecánica).'},
+      {key:'traffic', emoji:'🚦', label:'Semáforo', correct:false, failText:'El semáforo usa electricidad para cambiar luces, no gasolina. Intenta otra.'},
+      {key:'sun', emoji:'☀️', label:'Sol', correct:false, failText:'El sol da energía lumínica, no es una máquina que convierte gasolina en movimiento.'},
+      {key:'runner', emoji:'🏃‍♂️', label:'Persona corriendo', correct:false, failText:'La persona usa energía química del cuerpo, pero la misión pide una máquina (como un coche).'}
+    ],
+    medal:'gold'
+  }
+];
+
+// Game state
+let currentLevelIndex = -1;
+let score = 0;
+let medals = []; // store 'bronze'/'silver'/'gold'
+const POINTS_PER_LEVEL = 100;
+
+// DOM refs
+const startBtn = document.getElementById('startBtn');
+const gameArea = document.getElementById('gameArea');
+const scene = document.getElementById('scene');
+const missionHint = document.getElementById('missionHint');
+const levelNum = document.getElementById('levelNum');
+const scoreSpan = document.getElementById('score');
+const medalsCount = document.getElementById('medalsCount');
+const feedbackMsg = document.getElementById('feedbackMsg');
+const medalOverlay = document.getElementById('medalOverlay');
+const medalEmoji = document.getElementById('medalEmoji');
+const medalTitle = document.getElementById('medalTitle');
+const medalText = document.getElementById('medalText');
+const nextBtn = document.getElementById('nextBtn');
+const finalOverlay = document.getElementById('finalOverlay');
+const finalMedals = document.getElementById('finalMedals');
+const finalScore = document.getElementById('finalScore');
+const playAgain = document.getElementById('playAgain');
+const hintBtn = document.getElementById('hintBtn');
+const restartBtn = document.getElementById('restartBtn');
+const soundToggle = document.getElementById('soundToggle');
+
+// WebAudio simple helper
+let audioCtx = null;
+function ensureAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playTone(freq, duration=0.12, type='sine', gain=0.07, when=0){
+  if(!soundToggle.checked) return;
+  ensureAudio();
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  g.gain.value = gain;
+  o.connect(g);
+  g.connect(audioCtx.destination);
+  const now = audioCtx.currentTime + when;
+  o.start(now);
+  g.gain.setValueAtTime(g.gain.value, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+  o.stop(now + duration + 0.02);
+}
+function playClick(){ playTone(1200,0.06,'square',0.04); }
+function playSuccess(){ playTone(523.25,0.10,'sine',0.09); playTone(659.25,0.10,'sine',0.09,0.12); playTone(783.99,0.18,'sine',0.09,0.24); }
+function playError(){ playTone(220,0.16,'sawtooth',0.09); playTone(180,0.14,'sawtooth',0.07,0.18); }
+function playMedal(){ playTone(880,0.18,'triangle',0.12); playTone(1046.5,0.20,'triangle',0.10,0.18); }
+
+// unlock audio on first pointerdown for some browsers
+document.addEventListener('pointerdown', function unlock(){
+  ensureAudio();
+  const b = audioCtx.createBuffer(1,1,audioCtx.sampleRate);
+  const s = audioCtx.createBufferSource(); s.buffer = b; s.connect(audioCtx.destination); s.start(0);
+  document.removeEventListener('pointerdown', unlock);
+});
+
+// Start game
+startBtn.addEventListener('click', ()=>{
+  playClick();
+  startBtn.disabled = true;
+  document.getElementById('introPanel').style.display = 'none';
+  gameArea.style.display = 'block';
+  currentLevelIndex = -1;
+  score = 0;
+  medals = [];
+  updateHUD();
+  nextLevel();
+});
+
+// restart full game
+restartBtn.addEventListener('click', ()=>{
+  playClick();
+  currentLevelIndex = -1;
+  score = 0;
+  medals = [];
+  updateHUD();
+  finalOverlay.classList.remove('show');
+  medalOverlay.classList.remove('show');
+  nextLevel();
+});
+
+// play again (from final screen)
+playAgain.addEventListener('click', ()=>{
+  finalOverlay.classList.remove('show');
+  restartBtn.click();
+});
+
+// hint button
+hintBtn.addEventListener('click', ()=>{
+  playClick();
+  const lvl = LEVELS[currentLevelIndex];
+  if(!lvl) return;
+  feedbackMsg.textContent = 'Pista extra: ' + lvl.hint;
+});
+
+// next level (from medalla overlay)
+nextBtn.addEventListener('click', ()=>{
+  playClick();
+  medalOverlay.classList.remove('show');
+  nextLevel();
+});
+
+// helper update HUD
+function updateHUD(){
+  levelNum.textContent = Math.min(currentLevelIndex+1, LEVELS.length);
+  scoreSpan.textContent = score;
+  medalsCount.textContent = medals.length;
+}
+
+// populate scene for current level
+function renderLevel(){
+  scene.innerHTML = '';
+  const lvl = LEVELS[currentLevelIndex];
+  missionHint.textContent = lvl.hint;
+  feedbackMsg.textContent = 'Haz clic en el objeto que cumpla la misión.';
+  // shuffle options to avoid predictability
+  const opts = shuffleArray([...lvl.options]);
+  opts.forEach(opt=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.setAttribute('tabindex','0');
+    card.dataset.key = opt.key;
+    card.dataset.correct = opt.correct ? '1' : '0';
+    // content
+    card.innerHTML = `<div class="emoji" aria-hidden="true">${opt.emoji}</div><div class="label">${opt.label}</div>`;
+    // click handler
+    card.addEventListener('click', ()=> handleCardClick(card,opt));
+    // keyboard accessibility
+    card.addEventListener('keydown', (e)=>{
+      if(e.key==='Enter' || e.key===' ') { e.preventDefault(); handleCardClick(card,opt); }
+    });
+    scene.appendChild(card);
+  });
+}
+
+// handle click on option
+function handleCardClick(card,opt){
+  playClick();
+  // correct?
+  if(opt.correct){
+    // visual: highlight card and show medal overlay
+    card.classList.add('highlight');
+    setTimeout(()=> card.classList.remove('highlight'), 900);
+    // award points + medal
+    score += POINTS_PER_LEVEL;
+    medals.push(LEVELS[currentLevelIndex].medal);
+    updateHUD();
+    // success feedback
+    feedbackMsg.textContent = opt.successText;
+    playSuccess();
+    // show medal overlay
+    setTimeout(()=> showMedalOverlay(LEVELS[currentLevelIndex].medal, LEVELS[currentLevelIndex].name, opt.successText), 400);
+  } else {
+    // wrong: shake & message
+    card.classList.add('wrong');
+    setTimeout(()=> card.classList.remove('wrong'), 700);
+    feedbackMsg.textContent = opt.failText;
+    playError();
+  }
+}
+
+// show medalla overlay
+function showMedalOverlay(medalType, levelName, text){
+  const emojiMap = { bronze:'🥉', silver:'🥈', gold:'🥇' };
+  const titleMap = { bronze:'Medalla de Bronce', silver:'Medalla de Plata', gold:'Medalla de Oro' };
+  medalEmoji.textContent = emojiMap[medalType] || '🏅';
+  medalEmoji.className = 'medal ' + (medalType);
+  medalTitle.textContent = titleMap[medalType] || 'Medalla';
+  medalText.textContent = `${titleMap[medalType] || 'Medalla'} desbloqueada en ${levelName}!`;
+  medalOverlay.classList.add('show');
+  playMedal();
+  // if last level, change next button to finish
+  if(currentLevelIndex >= LEVELS.length - 1){
+    nextBtn.textContent = 'Ver resultados';
+    nextBtn.onclick = ()=> {
+      medalOverlay.classList.remove('show');
+      showFinal();
+    };
+  } else {
+    nextBtn.textContent = 'Siguiente Nivel';
+    nextBtn.onclick = ()=> {
+      medalOverlay.classList.remove('show');
+      nextLevel();
+    };
+  }
+}
+
+// advance to next level
+function nextLevel(){
+  currentLevelIndex++;
+  if(currentLevelIndex >= LEVELS.length){
+    // game finished
+    showFinal();
+    return;
+  }
+  renderLevel();
+  updateHUD();
+}
+
+// final summary
+function showFinal(){
+  finalMedals.innerHTML = '';
+  // show medallas collected with labels
+  const present = { bronze:false, silver:false, gold:false };
+  medals.forEach(m=> present[m]=true);
+  if(present.bronze) finalMedals.innerHTML += `<div class="med">🥉<div class="small">Novato</div></div>`;
+  if(present.silver) finalMedals.innerHTML += `<div class="med">🥈<div class="small">Avanzado</div></div>`;
+  if(present.gold) finalMedals.innerHTML += `<div class="med">🥇<div class="small">Maestro</div></div>`;
+  finalScore.textContent = score;
+  finalOverlay.classList.add('show');
+  playSuccess();
+}
+
+// Utility: shuffle
+function shuffleArray(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// initial state: hide game area
+document.addEventListener('DOMContentLoaded', ()=>{
+  // nothing to do immediately; wait for Start
+  updateHUD();
+});
+
+</script>
+</body>
+</html>

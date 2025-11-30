@@ -1,0 +1,519 @@
+<content>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simulador Interactivo: Transformaciones de Energía</title>
+<style>
+  :root{
+    --bg:#FFF9F2;
+    --card:#FFFFFF;
+    --accent:#FF6B6B;
+    --accent2:#FFD166;
+    --text:#2B2B2B;
+    --muted:#6B6B6B;
+    --success:#2ECC71;
+    --wrong:#FF6B6B;
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#FDF3E7 0%, #FFF9F2 100%);color:var(--text)}
+  .container{max-width:1100px;margin:18px auto;padding:16px;}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+  .logo{font-size:36px}
+  h1{font-size:20px;margin:0}
+  p.lead{margin:6px 0 0;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0;}
+  .card{
+    background:var(--card);
+    border-radius:12px;
+    padding:12px;
+    min-height:160px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 8px 22px rgba(19,19,19,0.06);
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .emoji{font-size:54px;transition:transform .18s ease, filter .18s ease;}
+  .obj-name{margin-top:8px;font-weight:800}
+  .droptarget{border:3px dashed transparent;border-radius:10px;padding:6px;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .18s ease;box-sizing:border-box}
+  .droptarget.dragover{border-color:var(--accent2);background:rgba(255,209,102,0.12)}
+  .blender .emoji{transform-origin:center center}
+  .card.blender.active .emoji{animation:spin 0.6s linear infinite}
+  @keyframes spin{from{transform:rotate(0deg)} to{transform:rotate(360deg)}}
+
+.swing .emoji{transform-origin:top center;display:block}
+.card.swing.active .emoji{animation:swing 1s ease-in-out infinite}
+@keyframes swing{
+0%{transform:rotate(-18deg)}
+50%{transform:rotate(18deg)}
+100%{transform:rotate(-18deg)}
+}
+
+.flashlight .beam{width:0;height:0;transition:all .22s ease;border-left:44px solid transparent;border-right:44px solid transparent;border-top:86px solid rgba(255,250,200,0);opacity:0;pointer-events:none;position:absolute;top:20px;left:50%;transform:translateX(-50%) rotate(0deg)}
+.card.flashlight.active .beam{border-top-color:rgba(255,250,200,0.95);opacity:1}
+
+.solar .bolt{position:absolute;bottom:14px;right:12px;font-size:20px;opacity:0;transform:translateY(10px);transition:all .28s ease}
+.card.solar.active .bolt{opacity:1;transform:translateY(0);}
+
+/* small badge for transformation */
+.badge {
+position:absolute;
+bottom:8px;
+left:50%;
+transform:translateX(-50%);
+background:rgba(255,255,255,0.9);
+border:1px solid #EEE;
+padding:6px 10px;
+border-radius:12px;
+font-size:13px;
+font-weight:700;
+box-shadow:0 6px 14px rgba(0,0,0,0.06);
+}
+
+.energies{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center;padding:12px;border-radius:14px;background:linear-gradient(180deg,#FFFFFFAA,#FFF5E6);box-shadow:0 8px 20px rgba(0,0,0,0.04)}
+.energy{
+user-select:none;
+-webkit-user-select:none;
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+width:110px;height:110px;border-radius:14px;background:linear-gradient(180deg,#FFF,#FFEFD6);
+box-shadow:0 10px 26px rgba(0,0,0,0.06);font-weight:800;font-size:16px;padding:10px;cursor:grab;
+transition:transform .12s ease, box-shadow .12s ease;
+}
+.energy:active
+.energy:focus{outline:3px solid rgba(255,209,102,0.6)}
+.energy .sym{font-size:36px}
+.energy .label{font-size:14px;margin-top:6px}
+.controls{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap}
+.btn{background:var(--accent);color:white;padding:10px 14px;border-radius:12px;border:none;font-weight:800;cursor:pointer;box-shadow:0 8px 18px rgba(255,107,107,0.18)}
+.btn.secondary{background:var(--accent2);color:#2B2B2B}
+.hint{color:var(--muted);font-size:14px}
+.message{margin-top:12px;padding:12px;border-radius:10px;background:#FFF;border:1px solid #F1E4D7;color:var(--text);min-height:64px;display:flex;align-items:center;gap:12px}
+.message.success{border-color:rgba(46,204,113,0.12);background:linear-gradient(90deg,#E8FBF0,#F7FFF9)}
+.message.wrong{border-color:rgba(255,107,107,0.12);background:linear-gradient(90deg,#FFF0F0,#FFF7F7)}
+.message .msg-text{font-weight:800}
+footer{margin-top:16px;text-align:center;color:var(--muted);font-size:13px}
+
+@media(max-width:900px){
+.grid{grid-template-columns:repeat(2,1fr)}
+.energy{width:48%;height:92px}
+}
+@media(max-width:520px){
+header{flex-direction:column;align-items:flex-start;gap:6px}
+.grid{grid-template-columns:1fr;gap:10px}
+.energies{gap:6px}
+.energy{width:45%;height:84px;font-size:14px}
+} </style>
+
+</head>
+<body>
+  <div class="container" role="application" aria-label="Simulador de Transformaciones de Energía">
+    <header>
+      <div class="logo" aria-hidden="true">🔋✨</div>
+      <div>
+        <h1>Simulador: ¿Cómo se transforma la energía?</h1>
+        <p class="lead">Arrastra la energía correcta sobre cada objeto. Diseño para 5º de primaria. 👧👦</p>
+      </div>
+    </header>
+
+```
+<main>
+  <section aria-label="Escenarios">
+    <div class="grid" id="targets">
+      <div class="card blender" data-target="Licuadora">
+        <div class="droptarget" data-accepts="Eléctrica" data-target-id="licuadora" tabindex="0" aria-label="Licuadora">
+          <div class="emoji" aria-hidden="true">🌀</div>
+          <div class="obj-name">Licuadora</div>
+        </div>
+      </div>
+
+      <div class="card swing" data-target="Columpio">
+        <div class="droptarget" data-accepts="Mecánica" data-target-id="columpio" tabindex="0" aria-label="Columpio">
+          <div class="emoji" aria-hidden="true">🪑</div>
+          <div class="obj-name">Columpio</div>
+        </div>
+      </div>
+
+      <div class="card flashlight" data-target="Linterna">
+        <div class="droptarget" data-accepts="Química" data-target-id="linterna" tabindex="0" aria-label="Linterna">
+          <div class="emoji" aria-hidden="true">🔦</div>
+          <div class="beam" aria-hidden="true"></div>
+          <div class="obj-name">Linterna</div>
+        </div>
+      </div>
+
+      <div class="card solar" data-target="Panel Solar">
+        <div class="droptarget" data-accepts="Lumínica" data-target-id="panel" tabindex="0" aria-label="Panel Solar">
+          <div class="emoji" aria-hidden="true">🔆</div>
+          <div class="bolt" aria-hidden="true">⚡</div>
+          <div class="obj-name">Panel Solar</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="Energías disponibles" style="margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div class="hint">Instrucciones: <strong>Arrastra</strong> (o toca y luego toca el objeto) la energía correcta sobre el objeto.</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="display:flex;align-items:center;gap:8px;background:#fff;padding:6px 8px;border-radius:10px;border:1px solid #F1E4D7">
+          <strong>Sonidos</strong>
+          <input id="soundOn" type="checkbox" checked style="transform:scale(1.1);margin-left:6px" aria-label="Activar sonidos"/>
+        </label>
+        <button class="btn secondary" id="mostrar-respuestas" title="Mostrar pistas">Mostrar pistas</button>
+        <button class="btn" id="reset">Reiniciar</button>
+      </div>
+    </div>
+
+    <div style="height:12px"></div>
+
+    <div class="energies" id="energies" aria-label="Iconos de energías">
+      <div class="energy" draggable="true" data-energy="Eléctrica" tabindex="0" role="button" aria-grabbed="false">
+        <div class="sym">⚡</div>
+        <div class="label">Eléctrica</div>
+      </div>
+      <div class="energy" draggable="true" data-energy="Lumínica" tabindex="0" role="button" aria-grabbed="false">
+        <div class="sym">💡</div>
+        <div class="label">Lumínica</div>
+      </div>
+      <div class="energy" draggable="true" data-energy="Mecánica" tabindex="0" role="button" aria-grabbed="false">
+        <div class="sym">🔧</div>
+        <div class="label">Mecánica</div>
+      </div>
+      <div class="energy" draggable="true" data-energy="Química" tabindex="0" role="button" aria-grabbed="false">
+        <div class="sym">⚗️</div>
+        <div class="label">Química</div>
+      </div>
+      <div class="energy" draggable="true" data-energy="Térmica" tabindex="0" role="button" aria-grabbed="false">
+        <div class="sym">🔥</div>
+        <div class="label">Térmica</div>
+      </div>
+      <div class="energy" draggable="true" data-energy="Potencial" tabindex="0" role="button" aria-grabbed="false">
+        <div class="sym">🪨</div>
+        <div class="label">Potencial</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="message" id="message" aria-live="polite">
+    <div class="msg-text">Empieza cuando quieras — arrastra una energía sobre un objeto. 😊</div>
+  </div>
+
+  <div class="controls" style="margin-top:10px">
+    <div class="hint">¿No estás seguro? Pide una pista o reinicia para intentarlo de nuevo.</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn secondary" id="pista">Pista</button>
+      <button class="btn" id="comprobar-todo">Comprobar objetos</button>
+    </div>
+  </div>
+
+  <footer>
+    <small>Hecho para alumnos de 5º primaria • Diseño colorido y accesible</small>
+  </footer>
+</main>
+```
+
+  </div>
+
+<script>
+/* Simulador corregido: animaciones aplicadas correctamente sobre .card.*, sonidos (acierto/error/click),
+   soporte drag & drop + táctil (tocar energía luego tocar objeto), mensajes amigables.
+*/
+
+(function(){
+  // Elements
+  const energies = Array.from(document.querySelectorAll('.energy'));
+  const targets = Array.from(document.querySelectorAll('.droptarget'));
+  const msgBox = document.getElementById('message');
+  const resetBtn = document.getElementById('reset');
+  const pistaBtn = document.getElementById('pista');
+  const mostrarPistasBtn = document.getElementById('mostrar-respuestas');
+  const comprobarBtn = document.getElementById('comprobar-todo');
+  const soundCheckbox = document.getElementById('soundOn');
+
+  // Audio: WebAudio simple synthesizer
+  let audioCtx = null;
+  function ensureAudio(){
+    if(audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  function playTone(freq, dur=0.12, type='sine', when=0, gain=0.06){
+    if(!soundCheckbox.checked) return;
+    ensureAudio();
+    const ctx = audioCtx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.value = gain;
+    o.connect(g);
+    g.connect(ctx.destination);
+    const now = ctx.currentTime + when;
+    o.start(now);
+    g.gain.setValueAtTime(g.gain.value, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    o.stop(now + dur + 0.02);
+  }
+
+  function playSuccess(){
+    // short triad arpeggio
+    playTone(523.25, 0.12, 'sine', 0, 0.10);
+    playTone(659.25, 0.12, 'sine', 0.12, 0.09);
+    playTone(783.99, 0.18, 'sine', 0.24, 0.09);
+  }
+
+  function playError(){
+    // descending attention
+    playTone(220, 0.18, 'sawtooth', 0, 0.09);
+    playTone(180, 0.16, 'sawtooth', 0.20, 0.07);
+  }
+
+  function playClick(){
+    playTone(1200, 0.05, 'square', 0, 0.04);
+  }
+
+  // State
+  let touchSelectedEnergy = null; // for touch fallback (tap energy -> tap target)
+  const solved = new Set();
+
+  // Messaging
+  function setMessage(text, type='neutral'){
+    msgBox.classList.remove('success','wrong');
+    if(type==='success') msgBox.classList.add('success');
+    if(type==='wrong') msgBox.classList.add('wrong');
+    msgBox.querySelector('.msg-text').textContent = text;
+  }
+
+  // Correct mapping & responses
+  const correctMap = {
+    'licuadora': 'Eléctrica',
+    'panel': 'Lumínica',
+    'linterna': 'Química',
+    'columpio': 'Mecánica'
+  };
+  const successMsg = {
+    'licuadora': '¡Correcto! La energía eléctrica se transformó en Mecánica y Sonora.',
+    'panel': '¡Bien! La luz del sol se transforma en electricidad.',
+    'linterna': '¡Sí! La energía química de las pilas se vuelve luz.',
+    'columpio': '¡Perfecto! El empuje (energía mecánica) mueve el columpio.'
+  };
+  const wrongMsg = {
+    'licuadora': 'Intenta de nuevo, la licuadora necesita un enchufe (energía eléctrica).',
+    'panel': 'Ese no es el correcto. El panel necesita luz (energía lumínica).',
+    'linterna': 'Prueba otra vez: la linterna se enciende con pilas (energía química).',
+    'columpio': 'Casi: para mover el columpio usamos energía mecánica (empuje).'
+  };
+
+  // Visual success effect: add .active to the .card (not droptarget) so CSS works
+  function applySuccessEffectToCard(cardEl){
+    if(!cardEl) return;
+    cardEl.classList.add('active');
+    // some objects have inner elements that also change — CSS handles them using .card.*.active
+    setTimeout(()=> cardEl.classList.remove('active'), 3000);
+  }
+
+  function showBadge(cardEl, text){
+    // remove existing badge if any
+    const existing = cardEl.querySelector('.badge');
+    if(existing) existing.remove();
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.textContent = text;
+    cardEl.appendChild(badge);
+    setTimeout(()=> badge.remove(), 3800);
+  }
+
+  function handleDrop(energyName, dropTargetEl){
+    const tid = dropTargetEl.dataset.targetId;
+    if(!tid) return;
+    const cardEl = dropTargetEl.closest('.card');
+    if(solved.has(tid)){
+      setMessage('Ya resolviste este objeto. ¡Prueba con otro!', 'neutral');
+      return;
+    }
+    const correct = correctMap[tid];
+    if(energyName === correct){
+      solved.add(tid);
+      setMessage(successMsg[tid], 'success');
+      applySuccessEffectToCard(cardEl);
+      showBadge(cardEl, successMsg[tid]);
+      playSuccess();
+      // Additional special handling (for clarity/readability)
+      // - Licuadora: spinning handled by .card.blender.active .emoji
+      // - Columpio: swing animation handled by .card.swing.active .emoji
+      // - Linterna: beam appears because .card.flashlight.active .beam
+      // - Panel: bolt appears because .card.solar.active .bolt
+    } else {
+      setMessage(wrongMsg[tid], 'wrong');
+      // friendly shake-like visual: briefly add dragover style
+      dropTargetEl.classList.add('dragover');
+      setTimeout(()=> dropTargetEl.classList.remove('dragover'), 650);
+      playError();
+    }
+  }
+
+  // Drag & Drop handlers (desktop)
+  energies.forEach(en=>{
+    en.addEventListener('dragstart', (ev)=>{
+      ev.dataTransfer.setData('text/plain', en.dataset.energy);
+      ev.dataTransfer.effectAllowed = 'move';
+      en.style.opacity = '0.5';
+      en.setAttribute('aria-grabbed','true');
+      touchSelectedEnergy = en.dataset.energy; // remember for touch fallback too
+      playClick();
+    });
+    en.addEventListener('dragend', ()=>{
+      en.style.opacity = '1';
+      en.setAttribute('aria-grabbed','false');
+      // don't clear touchSelectedEnergy here to allow drop to read it
+    });
+
+    // Keyboard: select energy
+    en.addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter' || ev.key === ' '){
+        touchSelectedEnergy = en.dataset.energy;
+        setMessage('Energía seleccionada: ' + touchSelectedEnergy + '. Ahora toca o selecciona el objeto.', 'neutral');
+        playClick();
+        ev.preventDefault();
+      }
+    });
+
+    // Touch: tap energy to select
+    en.addEventListener('touchstart', (ev)=>{
+      touchSelectedEnergy = en.dataset.energy;
+      setMessage('Energía seleccionada: ' + touchSelectedEnergy + '. Toca el objeto donde quieras usarla.', 'neutral');
+      playClick();
+      ev.stopPropagation();
+    });
+  });
+
+  // Targets: handle drop, click (for touch fallback) and keyboard
+  targets.forEach(t=>{
+    t.addEventListener('dragover', (ev)=>{
+      ev.preventDefault();
+      t.classList.add('dragover');
+    });
+    t.addEventListener('dragleave', ()=> t.classList.remove('dragover'));
+    t.addEventListener('drop', (ev)=>{
+      ev.preventDefault();
+      t.classList.remove('dragover');
+      const payload = ev.dataTransfer.getData('text/plain') || touchSelectedEnergy;
+      if(payload) handleDrop(payload, t);
+      touchSelectedEnergy = null;
+    });
+
+    // Click (touch fallback): if an energy is selected, apply it
+    t.addEventListener('click', (ev)=>{
+      if(touchSelectedEnergy){
+        handleDrop(touchSelectedEnergy, t);
+        touchSelectedEnergy = null;
+      } else {
+        setMessage('Selecciona primero una energía (toca un icono) o arrastra desde abajo.', 'neutral');
+      }
+    });
+
+    // Keyboard: if energy selected and user presses Enter on target
+    t.addEventListener('keydown', (ev)=>{
+      if((ev.key === 'Enter' || ev.key === ' ') && touchSelectedEnergy){
+        handleDrop(touchSelectedEnergy, t);
+        touchSelectedEnergy = null;
+        ev.preventDefault();
+      }
+    });
+  });
+
+  // Control buttons
+  resetBtn.addEventListener('click', ()=>{
+    solved.clear();
+    document.querySelectorAll('.card.active').forEach(c=>c.classList.remove('active'));
+    document.querySelectorAll('.badge').forEach(b=>b.remove());
+    setMessage('Listo — todo reiniciado. Intenta nuevamente. 😊', 'neutral');
+    playClick();
+  });
+
+  pistaBtn.addEventListener('click', ()=>{
+    const unsolved = targets.filter(t=>!solved.has(t.dataset.targetId));
+    if(unsolved.length === 0){
+      setMessage('¡Ya resolviste todos los objetos! Reinicia si quieres jugar otra vez.', 'success');
+      playSuccess();
+      return;
+    }
+    const pick = unsolved[Math.floor(Math.random()*unsolved.length)];
+    const tid = pick.dataset.targetId;
+    const corr = correctMap[tid];
+    setMessage('Pista: El ' + pick.closest('.card').dataset.target + ' necesita energía: ' + corr + '.', 'neutral');
+    playClick();
+  });
+
+  mostrarPistasBtn.addEventListener('click', ()=>{
+    targets.forEach(t=>{
+      const hint = document.createElement('div');
+      hint.style.position = 'absolute';
+      hint.style.top = '8px';
+      hint.style.right = '8px';
+      hint.style.background = 'rgba(255,210,102,0.12)';
+      hint.style.padding = '6px 8px';
+      hint.style.borderRadius = '8px';
+      hint.style.fontSize = '12px';
+      hint.style.fontWeight = '800';
+      hint.textContent = t.dataset.accepts;
+      hint.className = 'temp-hint';
+      const card = t.closest('.card');
+      card.appendChild(hint);
+      setTimeout(()=> hint.remove(), 3000);
+    });
+    setMessage('Se mostraron pistas pequeñas sobre cada objeto. ✅', 'neutral');
+    playClick();
+  });
+
+  comprobarBtn.addEventListener('click', ()=>{
+    const total = targets.length;
+    const correct = solved.size;
+    if(correct === total){
+      setMessage('¡Excelente! Has resuelto todos los objetos. 🎉', 'success');
+      playSuccess();
+    } else {
+      setMessage('Has resuelto ' + correct + ' de ' + total + '. Sigue intentándolo para terminar todos.', 'neutral');
+      playClick();
+    }
+  });
+
+  // Unlock audio on first user gesture in some browsers
+  document.addEventListener('pointerdown', function unlockAudio(){
+    if(!audioCtx) {
+      ensureAudio();
+      // small silent buffer to unlock
+      const buf = audioCtx.createBuffer(1,1,audioCtx.sampleRate);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+    }
+    document.removeEventListener('pointerdown', unlockAudio);
+  });
+
+  // Improve mobile: clear selection if the user scrolls
+  let touchMoved = false;
+  document.addEventListener('touchmove', ()=> touchMoved = true);
+  document.addEventListener('touchend', ()=> {
+    if(touchMoved) touchSelectedEnergy = null;
+    touchMoved = false;
+  });
+
+  // Ensure that when a card gets .active (we added it to .card), the internal elements reflect the change.
+  // (No MutationObserver required as CSS uses .card.*.active)
+
+  // Friendly initial message
+  setMessage('Empieza: arrastra ⚡, 💡, 🔧, ⚗️... sobre los objetos. Si estás en móvil, toca una energía y luego toca el objeto.', 'neutral');
+
+})();
+</script>
+
+</body>
+</html>
+</content>
